@@ -114,34 +114,70 @@ ON sp.store_id= sd.Store_Code;
 
 -- Q.5	Identify the least selling product in each store for each month based on total units sold.
 
-with t as 
-		(select * from sales s
-		join payment p
-		on
-		s.Invoice_ID = p.`Invoice ID`), 
-        final as 
-		(select 
-			store_id, city,product,quantity,month(order_date) as mon 
-		from t), 
-		h as 
-		(select store_id,mon,product,sum(quantity) 
-		as quantity_sold from final 
-		group by 
-		product, store_id,mon),
-		g as 
-		(select 
-			*,rank() over (partition by  store_id,mon order by quantity_sold) as rnk 
-			from h)
-select * from g 
-	where rnk=1;
+WITH t AS (
+    SELECT * 
+    FROM sales s
+    JOIN payment p 
+    ON s.invoice_id = p.`Invoice ID`
+), 
+final AS (
+    SELECT 
+        store_id, 
+        city, 
+        product, 
+        quantity, 
+        MONTH(order_date) AS mon 
+    FROM t
+), 
+h AS (
+    SELECT 
+        store_id, 
+        mon, 
+        product, 
+        SUM(quantity) AS quantity_sold 
+    FROM final 
+    GROUP BY 
+        product, 
+        store_id, 
+        mon
+), 
+g AS (
+    SELECT 
+        *, 
+        RANK() OVER (PARTITION BY store_id, mon ORDER BY quantity_sold) AS rnk 
+    FROM h
+)
+SELECT store_id, mon AS Months, product AS Products, quantity_sold AS Quantity_Sold
+FROM g 
+WHERE rnk = 1;
 
 
-with t as 
-		(select *,month(order_date) as mon from sales s
-		join payment p
-		on
-		s.Invoice_ID = p.`Invoice ID`)
-select distinct * from (select store_id, product, quantity,mon ,sum(quantity) over (partition by product,store_id,mon order by quantity) as quantity_sold from t) j;
+ -- Q.6 Idemtify the gender-based product preference analysis.
+ 
+ SELECT 
+		s.gender ,s.product, ROUND(SUM(p.Unit_Price* p.Quantity),2) AS Total_Revenue
+ FROM 
+		sales s
+JOIN
+		payment p
+ON
+		s.Invoice_ID = p.`Invoice ID`
+GROUP BY 
+		2,1;
+        
+-- Q.7 Find the percentage contribution of each store to overall gross income.
 
+
+
+SELECT 
+    store_id,
+    SUM(gross_income) AS total_store_income,
+    (SUM(gross_income) / (0 SUM(gross_income) FROM sales)) * 100 AS percentage_contribution
+FROM 
+    sales
+GROUP BY 
+    store_id
+ORDER BY 
+    percentage_contribution DESC;
 
 
